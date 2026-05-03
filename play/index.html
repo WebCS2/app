@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Dark Fantasy 2D</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+        background: #0a0a0f;
+        font-family: monospace;
+    }
+    #gameCanvas {
+        background: linear-gradient(#0a0a0f, #050508);
+        display: block;
+    }
+    #ui {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        color: #fff;
+        font-size: 20px;
+        text-shadow: 0 0 10px #000;
+    }
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas" width="900" height="500"></canvas>
+<div id="ui">Coins: <span id="coins">0</span></div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let keys = {};
+document.addEventListener("keydown", e => keys[e.key] = true);
+document.addEventListener("keyup", e => keys[e.key] = false);
+
+// PLAYER
+let player = {
+    x: 100,
+    y: 300,
+    w: 40,
+    h: 60,
+    vx: 0,
+    vy: 0,
+    speed: 4,
+    jump: -12,
+    onGround: false,
+    coins: 0
+};
+
+// PLATFORMS
+let platforms = [
+    {x: 0, y: 450, w: 900, h: 50},
+    {x: 200, y: 350, w: 150, h: 20},
+    {x: 450, y: 300, w: 150, h: 20},
+    {x: 700, y: 250, w: 150, h: 20}
+];
+
+// COINS
+let coins = [
+    {x: 230, y: 310, r: 10, collected: false},
+    {x: 480, y: 260, r: 10, collected: false},
+    {x: 730, y: 210, r: 10, collected: false}
+];
+
+// MONSTER
+let monster = {
+    x: 600,
+    y: 420,
+    w: 50,
+    h: 50,
+    speed: 1.5
+};
+
+// GAME LOOP
+function update() {
+    // Movement
+    player.vx = 0;
+    if (keys["a"] || keys["ArrowLeft"]) player.vx = -player.speed;
+    if (keys["d"] || keys["ArrowRight"]) player.vx = player.speed;
+
+    // Jump
+    if ((keys["w"] || keys["ArrowUp"]) && player.onGround) {
+        player.vy = player.jump;
+        player.onGround = false;
+    }
+
+    // Gravity
+    player.vy += 0.6;
+
+    // Apply movement
+    player.x += player.vx;
+    player.y += player.vy;
+
+    // Platform collision
+    player.onGround = false;
+    for (let p of platforms) {
+        if (player.x < p.x + p.w &&
+            player.x + player.w > p.x &&
+            player.y < p.y + p.h &&
+            player.y + player.h > p.y) {
+
+            if (player.vy > 0) {
+                player.y = p.y - player.h;
+                player.vy = 0;
+                player.onGround = true;
+            }
+        }
+    }
+
+    // Coin collection
+    for (let c of coins) {
+        if (!c.collected) {
+            let dx = (player.x + player.w/2) - c.x;
+            let dy = (player.y + player.h/2) - c.y;
+            if (Math.sqrt(dx*dx + dy*dy) < 30) {
+                c.collected = true;
+                player.coins++;
+                document.getElementById("coins").textContent = player.coins;
+            }
+        }
+    }
+
+    // Monster AI (simple chase)
+    if (monster.x < player.x) monster.x += monster.speed;
+    if (monster.x > player.x) monster.x -= monster.speed;
+
+    if (monster.y < player.y) monster.y += monster.speed;
+    if (monster.y > player.y) monster.y -= monster.speed;
+
+    draw();
+    requestAnimationFrame(update);
+}
+
+// DRAW
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Dark fantasy fog
+    ctx.fillStyle = "rgba(0,0,0,0.2)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    // Platforms
+    ctx.fillStyle = "#2a2a33";
+    for (let p of platforms) {
+        ctx.fillRect(p.x, p.y, p.w, p.h);
+    }
+
+    // Player
+    ctx.fillStyle = "#8f5";
+    ctx.fillRect(player.x, player.y, player.w, player.h);
+
+    // Coins
+    ctx.fillStyle = "gold";
+    for (let c of coins) {
+        if (!c.collected) {
+            ctx.beginPath();
+            ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    // Monster
+    ctx.fillStyle = "#b00";
+    ctx.fillRect(monster.x, monster.y, monster.w, monster.h);
+}
+
+update();
+</script>
+
+</body>
+</html>
